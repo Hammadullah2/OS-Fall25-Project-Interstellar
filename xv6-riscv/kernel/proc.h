@@ -1,4 +1,5 @@
-// Saved registers for kernel context switches.
+// Saved registers for kernel 
+//context switches.
 struct context {
   uint64 ra;
   uint64 sp;
@@ -16,6 +17,11 @@ struct context {
   uint64 s9;
   uint64 s10;
   uint64 s11;
+
+//  #Task-2b
+  uint64 f[32];
+  uint64 fcsr;
+
 };
 
 // Per-CPU state.

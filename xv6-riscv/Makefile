@@ -197,10 +197,11 @@ UPROGS=\
 	$U/_forphan\
 	$U/_dorphan\
         $U/_fputest_quick\
-	$U/_xv6_math\
+        $U/_fputest
 	$U/_test_math\
 	$U/_xv6_strings\
 	$U/_test_strings\
+        $U/_xv6_math\
 
 
 ifeq ($(LAB),util)
