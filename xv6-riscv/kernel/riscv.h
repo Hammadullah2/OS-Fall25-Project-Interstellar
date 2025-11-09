@@ -172,6 +172,24 @@ r_stvec()
   return x;
 }
 
+//2a-start
+// Floating-point Control and Status Register (fcsr)
+// Provide read and write helpers for fcsr so kernel can clear/inspect flags.
+static inline uint64
+r_fcsr(void)
+{
+  uint64 x;
+  asm volatile("csrr %0, fcsr" : "=r"(x));
+  return x;
+}
+
+static inline void
+w_fcsr(uint64 x)
+{
+  asm volatile("csrw fcsr, %0" :: "r"(x));
+}
+//2a-end
+
 // Supervisor Timer Comparison Register
 static inline uint64
 r_stimecmp()
