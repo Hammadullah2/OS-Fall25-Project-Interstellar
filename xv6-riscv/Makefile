@@ -196,13 +196,14 @@ UPROGS=\
 	$U/_logstress\
 	$U/_forphan\
 	$U/_dorphan\
-        $U/_fputest_quick\
-        $U/_fputest
+	$U/_fputest_quick\
+	$U/_fputest\
 	$U/_test_math\
 	$U/_xv6_strings\
 	$U/_test_strings\
-        $U/_xv6_math\
-
+	$U/_test_stdlib\
+    $U/_test_milestone2\
+	$U/_xv6_math
 
 ifeq ($(LAB),util)
 UPROGS += \
@@ -210,7 +211,6 @@ UPROGS += \
 	$U/_sixfive\
 	$U/_find
 endif
-### ENDIF
 
 
 ifeq ($(LAB),syscall)
@@ -308,7 +308,7 @@ clean:
 	*/*.o */*.d */*.asm */*.sym \
 	$K/kernel fs.img \
 	mkfs/mkfs .gdbinit \
-        $U/usys.S \
+    $U/usys.S \
 	$(UPROGS)
 
 # try to generate a unique GDB port

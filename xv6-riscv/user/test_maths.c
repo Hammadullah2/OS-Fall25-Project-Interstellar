@@ -1,4 +1,4 @@
-#include "xv6_maths.h"
+#include "xv6_math.h"
 #include <stdio.h>
 #include <math.h>
 #include <float.h>
