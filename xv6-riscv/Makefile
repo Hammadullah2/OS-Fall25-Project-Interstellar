@@ -144,7 +144,7 @@ $K/%.o: $K/%.S
 tags: $(OBJS)
 	etags kernel/*.S kernel/*.c
 
-ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
+ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o $U/xv6_stdlib.o
 
 ifeq ($(LAB),lock)
 ULIB += $U/statistics.o
@@ -200,10 +200,14 @@ UPROGS=\
 	$U/_fputest\
 	$U/_test_math\
 	$U/_xv6_strings\
+	$U/_tests_stdlib\
 	$U/_test_strings\
 	$U/_test_stdlib\
     $U/_test_milestone2\
 	$U/_xv6_math
+
+ $U/xv6_stdlib.o: $U/xv6_stdlib.c $U/xv6_stdlib.h
+	$(CC) $(CFLAGS) -c -o $U/xv6_stdlib.o $U/xv6_stdlib.c	
 
 ifeq ($(LAB),util)
 UPROGS += \
