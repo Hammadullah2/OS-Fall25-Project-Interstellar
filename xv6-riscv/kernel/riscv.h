@@ -47,6 +47,19 @@ w_mepc(uint64 x)
 #define SSTATUS_SIE (1L << 1)  // Supervisor Interrupt Enable
 #define SSTATUS_UIE (1L << 0)  // User Interrupt Enable
 
+#define SSTATUS_FS_MASK          (3UL << 13)
+#define SSTATUS_FS_OFF_VAL       (0UL << 13)
+#define SSTATUS_FS_INITIAL_VAL   (1UL << 13)
+#define SSTATUS_FS_CLEAN_VAL     (2UL << 13)
+#define SSTATUS_FS_DIRTY_VAL     (3UL << 13)
+
+// FCSR exception flags (bits 0-4)
+#define FCSR_NX  0x01  // Inexact
+#define FCSR_UF  0x02  // Underflow
+#define FCSR_OF  0x04  // Overflow
+#define FCSR_DZ  0x08  // Divide by Zero
+#define FCSR_NV  0x10  // Invalid Operation
+
 static inline uint64
 r_sstatus()
 {

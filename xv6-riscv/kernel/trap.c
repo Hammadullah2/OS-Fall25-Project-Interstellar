@@ -71,6 +71,45 @@ usertrap(void)
   } else if((r_scause() == 15 || r_scause() == 13) &&
             vmfault(p->pagetable, r_stval(), (r_scause() == 13)? 1 : 0) != 0) {
     // page fault on lazily-allocated page
+  }// ===== START: Task 2c - FPU Exception Handling =====
+    else if(r_scause() == 2) {
+    // Illegal instruction exception
+    // Check if this is due to FPU being disabled
+      uint64 sstatus = r_sstatus();
+      uint64 fs = (sstatus >> 13) & 0x3;  // Extract FS field (bits 13-14)
+    
+      if(fs == 0) {
+      // FPU is in "Off" state - enable it
+        printf("usertrap: FPU was disabled, enabling for pid=%d\n", p->pid);
+      
+      // Set FS to Initial (01)
+        sstatus &= ~SSTATUS_FS_MASK;      // Clear FS bits
+        sstatus |= SSTATUS_FS_INITIAL_VAL; // Set to Initial
+        w_sstatus(sstatus);
+      
+      // Clear fcsr to known state
+        w_fcsr(0);
+      
+      // Don't set killed - let it retry the instruction
+      // The instruction will now succeed
+      } else {
+      // FS is not Off, so this is a genuine illegal instruction
+        printf("usertrap: illegal instruction, scause 0x%lx pid=%d\n", 
+               r_scause(), p->pid);
+        printf("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());
+        setkilled(p);
+      }
+    }
+    else if(r_scause() == 15) {
+    // Store/AMO page fault - check if FPU-related
+    // This is separate from the vmfault handling above
+      printf("usertrap: store page fault (possibly FPU), scause 0x%lx pid=%d\n", 
+             r_scause(), p->pid);
+      printf("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());
+      setkilled(p);
+
+  // ===== END: Task 2c =====
+
   } else {
     printf("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->pid);
     printf("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());
