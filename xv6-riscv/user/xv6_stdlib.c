@@ -22,98 +22,66 @@ void* xv6_calloc(int num, int size) {
 }
 
 // BSEARCH 
-void* xv6_bsearch(const void* key, const void* base, int num, int size,
-                  int (*compare)(const void*, const void*)) {
-    if (!key || !base || num <= 0 || size <= 0 || !compare)
-        return 0;
+void* xv6_bsearch (const void* key , const void* base ,int nmemb , int size ,
+    int (* compar)(const void*, const void*)) {
+    const char* low = base;
+    const char* high = low + nmemb * size;
 
-    const unsigned char* arr = (const unsigned char*)base;
-    int left = 0, right = num - 1;
+    while (low < high) {
+    const char* mid = low + (( high - low) / size / 2) * size;
+    int cmp = compar(key , mid);
 
-    while (left <= right) {
-        int mid = left + (right - left) / 2;
-        const unsigned char* mid_ptr = arr + mid * size;
-        int cmp = compare(key, mid_ptr);
-        if (cmp == 0) return (void*)mid_ptr;
-        if (cmp < 0) right = mid - 1;
-        else left = mid + 1;
+    if (cmp == 0) return (void*) mid;
+    if (cmp < 0) high = mid;
+    else low = mid + size;
     }
     return 0;
-}
+    }
 
 // QSORT 
-static void swap_elements(unsigned char* a, unsigned char* b, int size) {
-    if (a == b) return;
-    for (int i = 0; i < size; i++) {
-        unsigned char tmp = a[i];
-        a[i] = b[i];
-        b[i] = tmp;
+void xv6_qsort (void* base , int nmemb , int size ,
+    int (* compar)(const void*, const void*)) {
+    if (nmemb <= 1) return;
+
+    char* arr = base;
+
+    // Lomuto partition scheme
+    char* pivot = arr + (nmemb - 1) * size;
+    char* i = arr - size;
+
+    for (char* j = arr; j < pivot; j += size) {
+    if (compar(j, pivot) <= 0) {
+    i += size;
+    // Swap i and j
+    for (int k = 0; k < size; k++) {
+    char temp = i[k];
+    i[k] = j[k];
+    j[k] = temp;
+   }
+   }
+   } 
+    // Place pivot in correct position
+    i += size;
+    for (int k = 0; k < size; k++) {
+    char temp = i[k];
+    i[k] = pivot[k];
+    pivot[k] = temp;
     }
-}
 
-static void insertion_sort(unsigned char* arr, int low, int high, int size,
-                           int (*compare)(const void*, const void*)) {
-    for (int i = low + 1; i <= high; i++) {
-        int j = i;
-        while (j > low) {
-            unsigned char* cur = arr + j * size;
-            unsigned char* prev = arr + (j - 1) * size;
-            if (compare(prev, cur) <= 0) break;
-            swap_elements(prev, cur, size);
-            j--;
-        }
+    // Recursively sort partitions
+    int pivot_idx = (i - arr) / size;
+    xv6_qsort (arr , pivot_idx , size , compar);
+    xv6_qsort (i + size , nmemb - pivot_idx - 1, size , compar);
     }
-}
-
-static int partition(unsigned char* arr, int low, int high, int size,
-                     int (*compare)(const void*, const void*)) {
-    unsigned char* pivot = arr + high * size;
-    int i = low;
-    for (int j = low; j < high; j++) {
-        if (compare(arr + j * size, pivot) < 0) {
-            swap_elements(arr + i * size, arr + j * size, size);
-            i++;
-        }
-    }
-    swap_elements(arr + i * size, arr + high * size, size);
-    return i;
-}
-
-static void quicksort_recursive(unsigned char* arr, int low, int high, int size,
-                                int (*compare)(const void*, const void*)) {
-    while (low < high) {
-        if (high - low <= 8) {
-            insertion_sort(arr, low, high, size, compare);
-            return;
-        }
-
-        int p = partition(arr, low, high, size, compare);
-        if (p - low < high - p) {
-            quicksort_recursive(arr, low, p - 1, size, compare);
-            low = p + 1;
-        } else {
-            quicksort_recursive(arr, p + 1, high, size, compare);
-            high = p - 1;
-        }
-    }
-}
-
-void xv6_qsort(void* base, int num, int size,
-               int (*compare)(const void*, const void*)) {
-    if (!base || num <= 1 || size <= 0 || !compare) return;
-    quicksort_recursive((unsigned char*)base, 0, num - 1, size, compare);
-}
+    
 
 // ATOI 
 int xv6_atoi(const char* str) {
     if (!str) return 0;
-
     int i = 0, sign = 1, result = 0;
     while (str[i] == ' ' || str[i] == '\t' || str[i] == '\n') i++;
-
     if (str[i] == '-') { sign = -1; i++; }
     else if (str[i] == '+') { i++; }
-
     while (str[i] >= '0' && str[i] <= '9') {
         result = result * 10 + (str[i] - '0');
         i++;
@@ -121,48 +89,69 @@ int xv6_atoi(const char* str) {
     return sign * result;
 }
 
+static int xv6_isspace(char c) {
+    return (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v');
+}
+
+
+
 // ATOF
 float xv6_atof(const char* str) {
-    if (!str) return 0.0f;
+    // Skip whitespace
+    while ( xv6_isspace (* str)) str ++;
 
-    int i = 0, sign = 1, int_part = 0, frac_part = 0, frac_count = 0;
-
-    while (str[i] == ' ' || str[i] == '\t' || str[i] == '\n') i++;
-
-    if (str[i] == '-') { sign = -1; i++; }
-    else if (str[i] == '+') { i++; }
-
-    while (str[i] >= '0' && str[i] <= '9') { int_part = int_part * 10 + (str[i] - '0'); i++; }
-
-    if (str[i] == '.') {
-        i++;
-        while (str[i] >= '0' && str[i] <= '9' && frac_count < 6) {
-            frac_part = frac_part * 10 + (str[i] - '0');
-            frac_count++; i++;
-        }
-        while (str[i] >= '0' && str[i] <= '9') i++;
+    // Handle sign
+    float sign = 1.0f;
+    if (* str == '+') str ++;
+    else if (* str == '-') {
+    sign = -1.0f;
+    str ++;
     }
 
-    float result = (float)int_part;
-    if (frac_count > 0) {
-        float divisor = 1.0f;
-        for (int j = 0; j < frac_count; j++) divisor *= 10.0f;
-        result += (float)frac_part / divisor;
+    // Parse integer part
+    float result = 0.0f;
+    while (* str >= '0' && *str <= '9') {
+    result = result * 10.0f + (* str - '0');
+    str ++;
     }
 
-    if (str[i] == 'e' || str[i] == 'E') {
-        i++;
-        int exp_sign = 1, exponent = 0;
-        if (str[i] == '-') { exp_sign = -1; i++; }
-        else if (str[i] == '+') i++;
-        while (str[i] >= '0' && str[i] <= '9' && exponent < 30) {
-            exponent = exponent * 10 + (str[i] - '0'); i++;
-        }
-        for (int j = 0; j < exponent; j++) {
-            if (exp_sign > 0) result *= 10.0f;
-            else result /= 10.0f;
-        }
+    // Parse fractional part
+    if (* str == '.') {
+    str ++;
+    float fraction = 1.0f;
+    while (* str >= '0' && *str <= '9') {
+    fraction *= 0.1f;
+    result += (* str - '0') * fraction;
+    str ++;
+    }
+    }
+
+    // Parse exponent
+    if (* str == 'e' || *str == 'E') {
+    str ++;
+    int exp_sign = 1;
+    if (* str == '+') str ++;
+    else if (* str == '-') {
+    exp_sign = -1;
+    str ++;
+    }
+
+    int exponent = 0;
+    while (* str >= '0' && *str <= '9') {
+    exponent = exponent * 10 + (* str - '0');
+    str ++;
+    }
+
+    // Apply exponent
+    while (exponent -- > 0) {
+
+    result = (exp_sign == 1) ? result * 10.0f : result *
+
+    0.1f;
+
+    }
     }
 
     return sign * result;
-}
+    }
+
