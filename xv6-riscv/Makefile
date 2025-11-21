@@ -200,13 +200,14 @@ UPROGS=\
 	$U/_dorphan\
 	$U/_fputest_quick\
 	$U/_fputest\
+        $U/_sha256
 #	$U/_test_math\
 #	$U/_xv6_strings\
 #	$U/_tests_stdlib\
 #	$U/_test_strings\
 #	$U/_test_stdlib\
 #    $U/_test_milestone2\
-#	$U/_xv6_math
+#	$U/_xv6_math\
 
  $U/xv6_stdlib.o: $U/xv6_stdlib.c $U/xv6_stdlib.h
 	$(CC) $(CFLAGS) -c -o $U/xv6_stdlib.o $U/xv6_stdlib.c	
