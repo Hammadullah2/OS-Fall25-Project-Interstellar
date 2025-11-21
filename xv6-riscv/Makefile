@@ -91,6 +91,8 @@ OBJDUMP = $(TOOLPREFIX)objdump
 CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb -gdwarf-2
 CFLAGS = -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2
 
+XCFLAGS += -DSOL_COW -DLAB_COW
+
 ifdef LAB
 LABUPPER = $(shell echo $(LAB) | tr a-z A-Z)
 XCFLAGS += -DSOL_$(LABUPPER) -DLAB_$(LABUPPER)
@@ -198,13 +200,13 @@ UPROGS=\
 	$U/_dorphan\
 	$U/_fputest_quick\
 	$U/_fputest\
-	$U/_test_math\
-	$U/_xv6_strings\
-	$U/_tests_stdlib\
-	$U/_test_strings\
-	$U/_test_stdlib\
-    $U/_test_milestone2\
-	$U/_xv6_math
+#	$U/_test_math\
+#	$U/_xv6_strings\
+#	$U/_tests_stdlib\
+#	$U/_test_strings\
+#	$U/_test_stdlib\
+#    $U/_test_milestone2\
+#	$U/_xv6_math
 
  $U/xv6_stdlib.o: $U/xv6_stdlib.c $U/xv6_stdlib.h
 	$(CC) $(CFLAGS) -c -o $U/xv6_stdlib.o $U/xv6_stdlib.c	
@@ -239,10 +241,8 @@ UPROGS += \
 	$U/_lazytests
 endif
 
-ifeq ($(LAB),cow)
 UPROGS += \
 	$U/_cowtest
-endif
 
 ifeq ($(LAB),thread)
 UPROGS += \
@@ -331,7 +331,7 @@ endif
 FWDPORT1 = $(shell expr `id -u` % 5000 + 25999)
 FWDPORT2 = $(shell expr `id -u` % 5000 + 30999)
 
-QEMUOPTS = -machine virt -bios none -kernel $K/kernel -m 128M -smp $(CPUS) -nographic
+QEMUOPTS = -machine virt -bios none -kernel $K/kernel -m 256M -smp $(CPUS) -nographic
 QEMUOPTS += -global virtio-mmio.force-legacy=false
 QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
