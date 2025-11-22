@@ -19,10 +19,31 @@ static uint8 host_mac[ETHADDR_LEN] = { 0x52, 0x55, 0x0a, 0x00, 0x02, 0x02 };
 
 static struct spinlock netlock;
 
+#define NSOCK 16
+
+struct mbuf {
+  struct mbuf *next;
+  char *buf;
+  int len;
+  uint32 sip;
+  uint16 sport;
+};
+
+struct sock {
+  int port;
+  struct spinlock lock;
+  struct mbuf *rxq;
+};
+
+struct sock sockets[NSOCK];
+
 void
 netinit(void)
 {
   initlock(&netlock, "netlock");
+  for(int i = 0; i < NSOCK; i++) {
+    initlock(&sockets[i].lock, "sock");
+  }
 }
 
 
@@ -34,10 +55,18 @@ netinit(void)
 uint64
 sys_bind(void)
 {
-  //
-  // Your code here.
-  //
+  int port;
+  argint(0, &port);
 
+  for(int i = 0; i < NSOCK; i++){
+    acquire(&sockets[i].lock);
+    if(sockets[i].port == 0){
+      sockets[i].port = port;
+      release(&sockets[i].lock);
+      return 0;
+    }
+    release(&sockets[i].lock);
+  }
   return -1;
 }
 
@@ -74,10 +103,64 @@ sys_unbind(void)
 uint64
 sys_recv(void)
 {
-  //
-  // Your code here.
-  //
-  return -1;
+  int dport;
+  uint64 srcaddr;
+  uint64 sportaddr;
+  uint64 bufaddr;
+  int maxlen;
+
+  argint(0, &dport);
+  argaddr(1, &srcaddr);
+  argaddr(2, &sportaddr);
+  argaddr(3, &bufaddr);
+  argint(4, &maxlen);
+
+  struct sock *s = 0;
+  for(int i = 0; i < NSOCK; i++){
+    acquire(&sockets[i].lock);
+    if(sockets[i].port == dport){
+      s = &sockets[i];
+      break;
+    }
+    release(&sockets[i].lock);
+  }
+
+  if(s == 0) return -1;
+
+  while(s->rxq == 0){
+    sleep(s, &s->lock);
+  }
+
+  struct mbuf *m = s->rxq;
+  s->rxq = m->next;
+  release(&s->lock);
+
+  int len = m->len;
+  if(len > maxlen) len = maxlen;
+
+  // The payload is after the UDP header.
+  char *payload = m->buf + sizeof(struct eth) + sizeof(struct ip) + sizeof(struct udp);
+
+  if(copyout(myproc()->pagetable, bufaddr, payload, len) < 0){
+    kfree(m->buf);
+    kfree(m);
+    return -1;
+  }
+  
+  if(copyout(myproc()->pagetable, srcaddr, (char*)&m->sip, sizeof(m->sip)) < 0){
+    kfree(m->buf);
+    kfree(m);
+    return -1;
+  }
+  if(copyout(myproc()->pagetable, sportaddr, (char*)&m->sport, sizeof(m->sport)) < 0){
+    kfree(m->buf);
+    kfree(m);
+    return -1;
+  }
+
+  kfree(m->buf);
+  kfree(m);
+  return len;
 }
 
 // This code is lifted from FreeBSD's ping.c, and is copyright by the Regents
@@ -188,10 +271,58 @@ ip_rx(char *buf, int len)
     printf("ip_rx: received an IP packet\n");
   seen_ip = 1;
 
-  //
-  // Your code here.
-  //
-  
+  struct ip *ip = (struct ip *)(buf + sizeof(struct eth));
+  if(ip->ip_p != IPPROTO_UDP){
+    kfree(buf);
+    return;
+  }
+
+  struct udp *udp = (struct udp *)((char*)ip + sizeof(struct ip));
+  uint16 dport = ntohs(udp->dport);
+
+  struct sock *s = 0;
+  for(int i = 0; i < NSOCK; i++){
+    acquire(&sockets[i].lock);
+    if(sockets[i].port == dport){
+      s = &sockets[i];
+      break;
+    }
+    release(&sockets[i].lock);
+  }
+
+  if(s){
+    // check queue length
+    int qlen = 0;
+    struct mbuf *m = s->rxq;
+    while(m){
+      qlen++;
+      m = m->next;
+    }
+    if(qlen >= 16){
+      release(&s->lock);
+      kfree(buf);
+      return;
+    }
+
+    struct mbuf *nm = (struct mbuf*)kalloc();
+    nm->next = 0;
+    nm->buf = buf;
+    nm->len = ntohs(udp->ulen) - sizeof(struct udp);
+    nm->sip = ntohl(ip->ip_src);
+    nm->sport = ntohs(udp->sport);
+    
+    if(s->rxq){
+      struct mbuf *tail = s->rxq;
+      while(tail->next) tail = tail->next;
+      tail->next = nm;
+    } else {
+      s->rxq = nm;
+    }
+    wakeup(s);
+    release(&s->lock);
+  } else {
+    kfree(buf);
+  }
 }
 
 //
