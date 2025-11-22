@@ -105,6 +105,26 @@ e1000_transmit(char *buf, int len)
   // so that the caller knows to free buf.
   //
 
+  acquire(&e1000_lock);
+
+  uint32 idx = regs[E1000_TDT];
+
+  if((tx_ring[idx].status & E1000_TXD_STAT_DD) == 0){
+    release(&e1000_lock);
+    return -1;
+  }
+
+  if(tx_ring[idx].addr){
+    kfree((void*)tx_ring[idx].addr);
+  }
+
+  tx_ring[idx].addr = (uint64)buf;
+  tx_ring[idx].length = len;
+  tx_ring[idx].cmd = E1000_TXD_CMD_EOP | E1000_TXD_CMD_RS;
+  
+  regs[E1000_TDT] = (idx + 1) % TX_RING_SIZE;
+
+  release(&e1000_lock);
   
   return 0;
 }
@@ -119,6 +139,44 @@ e1000_recv(void)
   // Create and deliver a buf for each packet (using net_rx()).
   //
 
+  acquire(&e1000_lock);
+
+  uint32 idx = (regs[E1000_RDT] + 1) % RX_RING_SIZE;
+
+  while(rx_ring[idx].status & E1000_RXD_STAT_DD){
+    rx_ring[idx].status = 0;
+    
+    char *buf = (char *)rx_ring[idx].addr;
+    int len = rx_ring[idx].length;
+
+    char *new_buf = kalloc();
+    if(new_buf == 0){
+      // If we can't allocate a new buffer, we can't accept this packet
+      // because we need to put a buffer back into the ring.
+      // We could drop the packet and reuse the old buffer.
+      // For now, let's just reuse the old buffer and drop the received packet.
+      rx_ring[idx].status = 0; // Clear status to let hardware reuse it
+      // addr remains the same
+    } else {
+      rx_ring[idx].addr = (uint64)new_buf;
+      
+      // We must release the lock before calling net_rx because it might take a while
+      // or acquire other locks. However, we need to be careful about the ring state.
+      // Since we updated the descriptor (addr and status), the hardware can use it
+      // once we update RDT.
+      // But we haven't updated RDT yet.
+      // So the hardware won't touch it.
+      
+      release(&e1000_lock);
+      net_rx(buf, len);
+      acquire(&e1000_lock);
+    }
+    
+    regs[E1000_RDT] = idx;
+    idx = (idx + 1) % RX_RING_SIZE;
+  }
+
+  release(&e1000_lock);
 }
 
 void
