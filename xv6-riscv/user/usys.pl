@@ -48,3 +48,5 @@ entry("send");
 entry("recv");
 entry("pgpte");
 entry("kpgtbl");
+entry("weight_store");
+entry("weight_load");

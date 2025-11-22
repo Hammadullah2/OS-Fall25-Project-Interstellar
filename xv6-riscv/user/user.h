@@ -40,6 +40,8 @@ int ugetpid(void);
 uint64 pgpte(void*);
 void kpgtbl(void);
 #endif
+int weight_store(char*, void*, int);
+int weight_load(char*, void*, int);
 
 // ulib.c
 int stat(const char*, struct stat*);

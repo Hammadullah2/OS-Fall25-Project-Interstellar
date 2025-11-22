@@ -107,3 +107,34 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// Store weights in cache
+uint64
+sys_weight_store(void)
+{
+  char name[64];
+  uint64 src;
+  int len;
+
+  if(argstr(0, name, 64) < 0)
+    return -1;
+  argaddr(1, &src);
+  argint(2, &len);
+  
+  return weight_store_add(name, src, len);
+}
+// Load weights from cache
+uint64
+sys_weight_load(void)
+{
+  char name[64];
+  uint64 dst;
+  int len;
+
+  if(argstr(0, name, 64) < 0)
+    return -1;
+  argaddr(1, &dst);
+  argint(2, &len);
+
+  return weight_store_get(name, dst, len);
+}

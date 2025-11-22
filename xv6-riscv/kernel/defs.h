@@ -240,4 +240,9 @@ int             e1000_transmit(char *, int);
 void            netinit(void);
 void            net_rx(char *buf, int len);
 
+// weights.c
+void            weightinit(void);
+int             weight_store_add(char*, uint64, int);
+int             weight_store_get(char*, uint64, int);
+
 #endif

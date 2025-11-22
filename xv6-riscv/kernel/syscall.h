@@ -20,6 +20,8 @@
 #define SYS_link   19
 #define SYS_mkdir  20
 #define SYS_close  21
+#define SYS_weight_store 22
+#define SYS_weight_load  23
 
 // System calls for labs
 #define SYS_trace     22

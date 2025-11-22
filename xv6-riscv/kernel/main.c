@@ -39,6 +39,7 @@ main()
 #ifdef KCSAN
     kcsaninit();
 #endif
+    weightinit(); // Initialize weight store
     __sync_synchronize();
     started = 1;
   } else {

@@ -104,6 +104,8 @@ extern uint64 sys_unlink(void);
 extern uint64 sys_link(void);
 extern uint64 sys_mkdir(void);
 extern uint64 sys_close(void);
+extern uint64 sys_weight_store(void);
+extern uint64 sys_weight_load(void);
 
 #ifdef LAB_NET
 extern uint64 sys_bind(void);
@@ -111,13 +113,7 @@ extern uint64 sys_unbind(void);
 extern uint64 sys_send(void);
 extern uint64 sys_recv(void);
 #endif
-#ifdef LAB_PGTBL
-extern uint64 sys_pgpte(void);
-extern uint64 sys_kpgtbl(void);
-#endif
 
-// An array mapping syscall numbers from syscall.h
-// to the function that handles the system call.
 static uint64 (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
@@ -150,6 +146,8 @@ static uint64 (*syscalls[])(void) = {
 [SYS_pgpte] sys_pgpte,
 [SYS_kpgtbl] sys_kpgtbl,
 #endif
+[SYS_weight_store] sys_weight_store,
+[SYS_weight_load]  sys_weight_load,
 };
 
 
